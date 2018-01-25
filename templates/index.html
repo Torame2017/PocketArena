@@ -1,0 +1,405 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-Control" content="no-cache">
+<link rel="icon" href="{{static_url('img/logo_black_spinel.png')}}" type="image/x-icon">
+<link rel="shortcut icon" href="{{static_url('img/logo_black_spinel.png')}}" type="image/x-icon" />
+<title>PocketArena</title>
+<script src="//code.jquery.com/jquery-2.2.2.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jcanvas/20.1.4/jcanvas.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.0/jquery-ui.min.js"></script>
+<script src="{{static_url('html2canvas.js')}}"></script>
+<script>
+
+var ws;
+
+var TAG_REPORT_MAP_ICON = "report_map_icon";
+var TAG_REPORT_MAP_TEXT = "report_map_text";
+var TAG_REPORT_MAP = "report_map";
+var TAG_REPORT_CLEAR_MAP = "report_clear_map";
+var TAG_REPORT_REMOVE_MAP_ICON = "report_remove_map_icon";
+var TAG_REPORT_REMOVE_MAP_TEXT = "report_remove_map_text";
+var TAG_REPORT_SEND_MAP_IMAGE = "report_send_map_image";
+var TAG_NOTIFY_REMOVE_MAP_ICON = "notify_remove_map_icon";
+var TAG_NOTIFY_REMOVE_MAP_TEXT = "notify_remove_map_text";
+var TAG_NOTIFY_MAP_ICON = "notify_map_icon";
+var TAG_NOTIFY_MAP_TEXT = "notify_map_text";
+var TAG_NOTIFY_MAP = "notify_map";
+
+$(function(){
+    $("#text_map_text_size").spinner({
+        max:100,
+        min:10,
+        step:5,
+    }); 
+    
+    // WebSocket作成
+    uri = 'ws://' + location.host + '/blackspinel/pocketarena/ws';
+    ws = new WebSocket(uri);
+    // WebSocket open時のイベントハンドラ登録
+    ws.onopen = function(){
+        $("#log").prepend("&lt;onopen&gt; " + "<br/>");
+    	// 初期マップの通知
+		var value = $("#select_map").val();
+    	sendMsgWS(TAG_REPORT_MAP + ","+ value); // WebSocketを使いサーバにメッセージを送信 
+   }
+ 
+    // WebSocket message受信時のイベントハンドラ登録
+    ws.onmessage = function(message){ 	
+        $("#log").prepend(message.data + "<br/>");
+        
+        var tag = message.data.slice(0, message.data.indexOf(","));
+        var payload = message.data.slice(message.data.indexOf(",") + 1);
+        
+        if (tag == TAG_NOTIFY_MAP) {
+        	// 地図通知
+        	var map = payload;
+        	var map_url;
+        	switch (map) {
+        		case "item_fort_all":
+        			map_url="{{static_url('img/map_fort_all.jpg')}}";
+        			break;
+        		case "item_fort_center":
+        			map_url="{{static_url('img/map_fort_center.jpg')}}";
+        			break;
+        		case "item_fort_all_2":
+        			map_url="{{static_url('img/map_fort_all_2.png')}}";
+        			break;
+        	}
+        	$("#img_map").attr({'src':map_url});
+        } else if (tag == TAG_NOTIFY_MAP_ICON) {
+            // 地図アイコン通知
+            var id;
+            var type;
+            var x;
+            var y;
+            var buf;
+        	
+            var slice_start;
+            var slice_end;
+        	
+            slice_end = payload.indexOf(",");
+            id = payload.slice(0, slice_end);
+        	
+            slice_start = slice_end + 1;
+            slice_end = payload.indexOf(",", slice_start);
+            type = payload.slice(slice_start, slice_end); 
+        	
+            slice_start = slice_end + 1;
+            slice_end = payload.indexOf(",", slice_start);
+            x = payload.slice(slice_start, slice_end); 
+        	
+            slice_start = slice_end + 1;
+            y = payload.slice(slice_start); 
+        	
+	    console.log(" x:" + x + " y:" + y);
+	        
+	    var img_file_name;
+	        
+	    switch (type) {
+	        case "item_our_troop":
+	            img_file_name = "{{static_url('img/our_troop.png')}}";
+	            break;
+	        case "item_our_troop_clanleader":
+	            img_file_name = "{{static_url('img/our_troop_clanleader.png')}}";
+	            break;
+	        case "item_our_troop_main":
+	            img_file_name = "{{static_url('img/our_troop_main.png')}}";
+	            break;
+	        case "item_our_troop_seal_assault":
+	            img_file_name = "{{static_url('img/our_troop_seal_assault.png')}}";
+	            break;
+	        case "item_our_troop_defense":
+	            img_file_name = "{{static_url('img/our_troop_defense.png')}}";
+	            break;
+	        case "item_our_troop_mobile":
+	            img_file_name = "{{static_url('img/our_troop_mobile.png')}}";
+	            break;
+	        case "item_enemy_troop":
+	            img_file_name = "{{static_url('img/enemy_troop.png')}}";
+	            break;
+	        case "item_enemy_troop_clanleader":
+	            img_file_name = "{{static_url('img/enemy_troop_clanleader.png')}}";
+	            break;
+            }
+            var line = '<img src=' + img_file_name + '" id="img_map_icon_' + id + '" onclick="img_map_icon_onclick(event)" style="position:absolute; width:64px; height:64px; left:' + x + 'px; top: ' + y + 'px">';
+            $("#div_map").append(line);
+            $("#img_map_icon_" + id).draggable();
+        } else if (tag == TAG_NOTIFY_MAP_TEXT) {
+            // 地図テキスト通知
+            var id;
+            var text;
+            var x;
+            var y;
+            var buf;
+        	
+            var slice_start;
+            var slice_end;
+        	
+            slice_end = payload.indexOf(",");
+            id = payload.slice(0, slice_end);
+        	
+            slice_start = slice_end + 1;
+            slice_end = payload.indexOf(",", slice_start);
+            text = escape_html(decodeURIComponent(payload.slice(slice_start, slice_end))); 
+        	
+            slice_start = slice_end + 1;
+            slice_end = payload.indexOf(",", slice_start);
+            size = Number(payload.slice(slice_start, slice_end)); 
+            
+            slice_start = slice_end + 1;
+            slice_end = payload.indexOf(",", slice_start);
+            font_color = payload.slice(slice_start, slice_end); 
+            
+            slice_start = slice_end + 1;
+            slice_end = payload.indexOf(",", slice_start);
+            bg_color = payload.slice(slice_start, slice_end); 
+
+            slice_start = slice_end + 1;
+            slice_end = payload.indexOf(",", slice_start);
+            x = payload.slice(slice_start, slice_end); 
+        	
+            slice_start = slice_end + 1;
+            y = payload.slice(slice_start); 
+        	
+	    console.log(" x:" + x + " y:" + y);
+
+            font_color_r = parseInt(font_color.slice(1, 3), 16);
+            font_color_g = parseInt(font_color.slice(3, 5), 16);
+            font_color_b = parseInt(font_color.slice(5, 7), 16);
+
+            bg_color_r = parseInt(bg_color.slice(1, 3), 16);
+            bg_color_g = parseInt(bg_color.slice(3, 5), 16);
+            bg_color_b = parseInt(bg_color.slice(5, 7), 16);
+            bg_color_a = parseInt(bg_color.slice(7, 9), 16);
+            var line = '<div id="div_map_text_' + id + '" onclick="div_map_text_onclick(event)" style="font-size:' + size + 'px; color: rgb(' + font_color_r + ',' + font_color_g + ',' + font_color_b + '); background-color: rgba(' + bg_color_r + ',' + bg_color_g + ',' + bg_color_b + ',' + bg_color_a + '); position:absolute; width:auto; height:auto; left:' + x + 'px; top: ' + y + 'px">' + text + '</div>';
+            $("#div_map").append(line);
+            $("#div_map_text_" + id).draggable();
+        } else if (tag == TAG_NOTIFY_REMOVE_MAP_ICON) {
+            var id = "img_map_icon_" + payload;
+            $("#" + id).remove();
+        } else if (tag == TAG_NOTIFY_REMOVE_MAP_TEXT) {
+            var id = "div_map_text_" + payload;
+            $("#" + id).remove();
+        }
+    }
+ 
+    // WebSocket error時のイベントハンドラ登録
+    ws.onerror = function(e){
+        $("#log").prepend("&lt;onerror&gt; " + "<br/>");
+    }
+ 
+    // WebSocket close時のイベントハンドラ登録
+    ws.onclose = function(){
+        $("#log").prepend("&lt;onclose&gt; " + "<br/>");
+    }
+ 
+    // Windowが閉じられた(例：ブラウザを閉じた)時のイベントを設定
+    $(window).unload(function() {
+        ws.onclose(); // WebSocket close
+    })
+ 
+    // キー入力時のイベントを設定
+    $("#message").keyup(function(e){
+        sendMsgWS($("#message").val()); // WebSocketを使いサーバにメッセージを送信
+    });
+
+    // マップ変更
+    $("#select_map").change(function(e){
+    	var value = $("#select_map").val();
+        sendMsgWS(TAG_REPORT_MAP + "," + value); // WebSocketを使いサーバにメッセージを送信
+    });
+    
+    // アイコン全消去ボタンクリック
+    $("#button_report_clear_map").click(function(e){
+        if(window.confirm('このマップのアイコンがクリアされます。本当によろしいですか？')){
+            sendMsgWS(TAG_REPORT_CLEAR_MAP); // WebSocketを使いサーバにメッセージを送信
+        }
+    });
+    
+    // 画像送信ボタンクリック
+    $("#button_push_map_img").click(function(e){
+        html2canvas($("#div_map")[0]).then(function(canvas) {
+                var dataURI = canvas.toDataURL('image/png');
+                $('#log').prepend('Rendered:<img src="' + dataURI + '" /><br />');
+                $('#img_log').attr('src', dataURI);
+                var destination = $('#push_map_image_destination').val();
+                if (destination == "0") {
+                    // #general_open_to_everyone
+                    webhook_url = 'https://discordapp.com/api/webhooks/406094570808541205/KQi04rL1oX2FSpk3LXDvDtn-ojLWKHz1nDWWC6LrdS8fv0jyzMMdzQc-GZJgLAcv_WEs';
+                } else if(destination == "1") {
+                    // #tactics
+                    webhook_url = 'https://discordapp.com/api/webhooks/405791539835437056/KK4A3-F-x2era3VQHgOWNJrrkYio8f76166Yo_Gs-CkCNzJKKkLXUVZQAFJJ6gZMfUg1';
+                } else {
+                    // トラメサーバ
+                    webhook_url = 'https://discordapp.com/api/webhooks/405769910065823745/UYZyhpnpryyYTf1r0hiwz8NgKH7naQD4ji_n6zzOO9TTQ77HI8I0mcnI7YqxAfoPZ3d6';
+                }
+                sendMsgWS(TAG_REPORT_SEND_MAP_IMAGE + "," + dataURI + "," + btoa(webhook_url));
+            }
+        );
+    });
+
+    // ログ表示非表示切り替え
+    $("#checkbox_enable_log").change(function(e){
+        if ($(this).is(':checked')) {
+            $("#log").css({'visibility' : 'visible'});
+        } else {
+            $("#log").css({'visibility' : 'hidden'});
+        }
+    });
+})
+
+function escape_html(string) {
+    if(typeof string !== 'string') {
+        return string;
+    }
+    return string.replace(/[&'`"<>]/g, function(match) {
+        return {
+            '&': '&amp;',
+            "'": '&#x27;',
+            '`': '&#x60;',
+            '"': '&quot;',
+            '<': '&lt;',
+            '>': '&gt;',
+        }[match]
+    });
+}
+
+function img_map_icon_onclick(e) {
+    var value = $("input[name='RadioGroup_map_input']:checked").val();
+
+    if (value == "item_remove") {
+       	slice_start = e.target.id.indexOf("img_map_icon_") + 13;
+       	var id;
+       	id = e.target.id.slice(slice_start);
+		sendMsgWS(TAG_REPORT_REMOVE_MAP_ICON + "," + id);
+    }	
+}
+
+function div_map_text_onclick(e) {
+    var value = $("input[name='RadioGroup_map_input']:checked").val();
+
+    if (value == "item_remove") {
+       	slice_start = e.target.id.indexOf("div_map_text_") + 13;
+       	var id;
+       	id = e.target.id.slice(slice_start);
+		sendMsgWS(TAG_REPORT_REMOVE_MAP_TEXT + "," + id);
+    }	
+}
+
+function img_map_onclick(e) {
+    var x = e.pageX - $("#img_map").offset()["left"] - 9;
+    var y = e.pageY - $("#img_map").offset()["top"] - 6;
+
+    var value = $("input[name='RadioGroup_map_input']:checked").val();
+
+    console.log(value + " x:" + x + " y:" + y);
+    if (value == "item_map_text") {
+        var font_color = $("#color_map_text_font").val();
+        var bg_color = $("#color_map_text_bg").val(); 
+        var font_size = $("#text_map_text_size").val();
+
+        if ($("#checkbox_map_text_bg_transparent").prop('checked')) {
+          bg_color = bg_color + "00";
+        } else {
+          bg_color = bg_color + "ff";
+        }
+        sendMsgWS(TAG_REPORT_MAP_TEXT + "," + encodeURIComponent($("#text_map_text").val()) + "," + font_size + "," + font_color + "," + bg_color + "," + x + "," + y);
+    } else if (value != "item_none" && value != "item_remove") {
+        sendMsgWS(TAG_REPORT_MAP_ICON + "," + value + "," + x + "," + y);
+    }
+}
+
+function sendMsgWS(msg) {
+    ws.send(msg);
+    $("#log").prepend(msg + "<br/>");
+}
+
+</script>
+<style type="text/css">
+div.blockleft_1000 {
+   float: left;
+   width: 1100px;
+}
+div.blockleft {
+   float: left;
+}
+div.blockright {
+   float: right;
+}
+div.clearblock {
+   clear: both;
+}
+.relative {
+    position: relative;
+    width: auto;
+    height: auto;
+    max-width: 1000px
+    max-height: 1000px
+}
+
+img.icon {
+    width: 64px;
+    height: 64px;
+}
+
+</style>
+</head>
+<body>
+<div class="blockleft_1000">
+<div id="div_map" class="relative">
+<img id="img_map" width="1000px" src="" onclick="img_map_onclick(event)" />
+</div>
+</div>
+
+<div class="blockleft">
+自分が操作するマップの変更<br />
+<select id="select_map">
+    <option value="item_fort_all">要塞戦（全体）</option>
+    <option value="item_fort_center">要塞戦（中央）</option>
+    <option value="item_fort_all_2">要塞戦（全体）その2</option>
+</select>
+<br />
+<hr />
+<input type="radio" id="radio_none" name="RadioGroup_map_input" value="item_none" checked><label for="radio_none" checked>無選択</label><br /><br />
+<input type="radio" id="radio_map_text" name="RadioGroup_map_input" value="item_map_text"><label for="radio_text">文字列</label><br />
+テキスト：
+<input type="text" id="text_map_text">
+<br />
+文字色：<input type="color" id="color_map_text_font" value="#000000"><br />
+背景色：<input type="color" id="color_map_text_bg" value="#ffffff"> 透過：<input type="checkbox" id="checkbox_map_text_bg_transparent"><br />
+サイズ：<input type="text" id="text_map_text_size" value="20" size="2" />
+<br /><br />
+<input type="radio" id="radio_our_troop" name="RadioGroup_map_input" value="item_our_troop"><label for="radio_our_troop">自軍部隊<img src="{{static_url('img/our_troop.png')}}" class="icon"></label><br /><br />
+<input type="radio" id="radio_our_troop_clanleader" name="RadioGroup_map_input" value="item_our_troop_clanleader"><label for="radio_our_troop_clanleader">自軍部隊（盟主）<img src="{{static_url('img/our_troop_clanleader.png')}}" class="icon"></label><br /><br />
+<input type="radio" id="radio_our_troop_main" name="RadioGroup_map_input" value="item_our_troop_main"><label for="radio_our_troop_main">自軍部隊（本隊）<img src="{{static_url('img/our_troop_main.png')}}" class="icon"></label><br /><br />
+<input type="radio" id="radio_our_troop_seal_assault" name="RadioGroup_map_input" value="item_our_troop_seal_assault"><label for="radio_our_troop_seal_assault">自軍部隊（本隊（祭壇妨害））<img src="{{static_url('img/our_troop_seal_assault.png')}}" class="icon"></label><br /><br />
+<input type="radio" id="radio_our_troop_defense" name="RadioGroup_map_input" value="item_our_troop_defense"><label for="radio_our_troop_defense">自軍部隊（防衛）<img src="{{static_url('img/our_troop_defense.png')}}" class="icon"></label><br /><br />
+<input type="radio" id="radio_our_troop_mobile" name="RadioGroup_map_input" value="item_our_troop_mobile"><label for="radio_our_troop_mobile">自軍部隊（遊撃）<img src="{{static_url('img/our_troop_mobile.png')}}" class="icon"></label><br /><br />
+<input type="radio" id="radio_enemy_troop" name="RadioGroup_map_input" value="item_enemy_troop"><label for="radio_enemy_troop">敵軍部隊<img src="{{static_url('img/enemy_troop.png')}}" class="icon"></label><br /><br />
+<input type="radio" id="radio_enemy_troop_clanleader" name="RadioGroup_map_input" value="item_enemy_troop_clanleader"><label for="radio_enemy_troop_clanleader">敵軍部隊（盟主）<img src="{{static_url('img/enemy_troop_clanleader.png')}}" class="icon"></label><br /><br />
+<input type="radio" id="radio_remove" name="RadioGroup_map_input" value="item_remove"><label for="radio_remove">削除</label><br /><br />
+<br /><br />
+<input type="button" id="button_report_clear_map" value="表示物全削除" />
+<br /><br />
+<select id="push_map_image_destination">
+<option value="0">#general_open_to_everyone</option>
+<option value="1">#tactics</option>
+<option value="2">トラメサーバ</option>
+</select>
+<input type="button" id="button_push_map_img" value="Discordへ画像を送信" />
+</div>
+<div class="clearblock" />
+<br />
+<hr />
+<div class="blockright">
+Command control system "PocketArena" (c)Torame 2018<br />
+</div>
+<div class="clearblock" />
+<br />
+ログ表示：<input type="checkbox" id="checkbox_enable_log"></br >
+<div id="log" style="visibility:hidden" />
+</div>
+</body>
+</html>
