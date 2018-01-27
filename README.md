@@ -5,7 +5,7 @@ This is an assistnt tool for Lineage 2 Revolution fortress siege.
 It enables your clan to share arrangements of parties.
 
 ## Environment
-I checked this tool using CentOS 6.8 and Python 3.6.4
+This tool has been tested using CentOS 6.8 and Python 3.6.4
 
 ## How to install
 1. Checkout this repository
@@ -15,5 +15,5 @@ I checked this tool using CentOS 6.8 and Python 3.6.4
 4. To run server.py using Python
 
 ## Copyright
-Copyright(c) 2018 Tomonori Shuda(Torame)
+Copyright(c) 2018 Tomonori Shuda(Torame)  
 rayonvert7@gmail.com
