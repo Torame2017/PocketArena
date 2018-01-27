@@ -16,6 +16,8 @@ var ws;
 
 var TAG_REPORT_MAP_ICON = "report_map_icon";
 var TAG_REPORT_MAP_TEXT = "report_map_text";
+var TAG_REPORT_MOVE_MAP_ICON = "report_move_map_icon";
+var TAG_REPORT_MOVE_MAP_TEXT = "report_move_map_text";
 var TAG_REPORT_MAP = "report_map";
 var TAG_REPORT_CLEAR_MAP = "report_clear_map";
 var TAG_REPORT_REMOVE_MAP_ICON = "report_remove_map_icon";
@@ -25,6 +27,8 @@ var TAG_NOTIFY_REMOVE_MAP_ICON = "notify_remove_map_icon";
 var TAG_NOTIFY_REMOVE_MAP_TEXT = "notify_remove_map_text";
 var TAG_NOTIFY_MAP_ICON = "notify_map_icon";
 var TAG_NOTIFY_MAP_TEXT = "notify_map_text";
+var TAG_NOTIFY_MOVE_MAP_ICON = "notify_move_map_icon";
+var TAG_NOTIFY_MOVE_MAP_TEXT = "notify_move_map_text";
 var TAG_NOTIFY_MAP = "notify_map";
 
 $(function(){
@@ -92,8 +96,6 @@ $(function(){
         	
             slice_start = slice_end + 1;
             y = payload.slice(slice_start); 
-        	
-	    console.log(" x:" + x + " y:" + y);
 	        
 	    var img_file_name;
 	        
@@ -125,7 +127,17 @@ $(function(){
             }
             var line = '<img src=' + img_file_name + '" id="img_map_icon_' + id + '" onclick="img_map_icon_onclick(event)" style="position:absolute; width:64px; height:64px; left:' + x + 'px; top: ' + y + 'px">';
             $("#div_map").append(line);
-            $("#img_map_icon_" + id).draggable();
+            $("#img_map_icon_" + id).draggable({
+                stop : function(e, ui) {
+                    var left_str = $("#img_map_icon_" + id).css('left');
+                    var top_str = $("#img_map_icon_" + id).css('top');
+
+                    var left = left_str.slice(0, left_str.length - 2);
+                    var top = top_str.slice(0, top_str.length - 2);
+
+                    sendMsgWS(TAG_REPORT_MOVE_MAP_ICON + "," + id + "," + left + "," + top);
+                }
+            });
         } else if (tag == TAG_NOTIFY_MAP_TEXT) {
             // 地図テキスト通知
             var id;
@@ -175,13 +187,65 @@ $(function(){
             bg_color_a = parseInt(bg_color.slice(7, 9), 16);
             var line = '<div id="div_map_text_' + id + '" onclick="div_map_text_onclick(event)" style="font-size:' + size + 'px; color: rgb(' + font_color_r + ',' + font_color_g + ',' + font_color_b + '); background-color: rgba(' + bg_color_r + ',' + bg_color_g + ',' + bg_color_b + ',' + bg_color_a + '); position:absolute; width:auto; height:auto; left:' + x + 'px; top: ' + y + 'px">' + text + '</div>';
             $("#div_map").append(line);
-            $("#div_map_text_" + id).draggable();
+            $("#div_map_text_" + id).draggable({
+                stop : function(e, ui) {
+                    var left_str = $("#div_map_text_" + id).css('left');
+                    var top_str = $("#div_map_text_" + id).css('top');
+
+                    var left = left_str.slice(0, left_str.length - 2);
+                    var top = top_str.slice(0, top_str.length - 2);
+                    
+                    sendMsgWS(TAG_REPORT_MOVE_MAP_TEXT + "," + id + "," + left + "," + top);
+                }
+            });
         } else if (tag == TAG_NOTIFY_REMOVE_MAP_ICON) {
             var id = "img_map_icon_" + payload;
             $("#" + id).remove();
         } else if (tag == TAG_NOTIFY_REMOVE_MAP_TEXT) {
             var id = "div_map_text_" + payload;
             $("#" + id).remove();
+        } else if (tag == TAG_NOTIFY_MOVE_MAP_ICON) {
+            // 地図アイコン移動
+            var id;
+            var x;
+            var y;
+        	
+            var slice_start;
+            var slice_end;
+        	
+            slice_end = payload.indexOf(",");
+            id = payload.slice(0, slice_end);
+	
+            slice_start = slice_end + 1;
+            slice_end = payload.indexOf(",", slice_start);
+            x = payload.slice(slice_start, slice_end); 
+        	
+            slice_start = slice_end + 1;
+            y = payload.slice(slice_start); 
+            
+            $("#img_map_icon_" + id).css("left", x + "px");
+            $("#img_map_icon_" + id).css("top", y + "px");
+        } else if (tag == TAG_NOTIFY_MOVE_MAP_TEXT) {
+            // 地図テキスト移動
+            var id;
+            var x;
+            var y;
+        	
+            var slice_start;
+            var slice_end;
+        	
+            slice_end = payload.indexOf(",");
+            id = payload.slice(0, slice_end);
+        	
+            slice_start = slice_end + 1;
+            slice_end = payload.indexOf(",", slice_start);
+            x = payload.slice(slice_start, slice_end); 
+        	
+            slice_start = slice_end + 1;
+            y = payload.slice(slice_start); 
+	    
+            $("#div_map_text_" + id).css("left", x + "px");
+            $("#div_map_text_" + id).css("top", y + "px");
         }
     }
  

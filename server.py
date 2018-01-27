@@ -61,6 +61,8 @@ class MainHandler(tornado.web.RequestHandler):
 class WSHandler(tornado.websocket.WebSocketHandler):
     TAG_REPORT_MAP_ICON = "report_map_icon"
     TAG_REPORT_MAP_TEXT = "report_map_text"
+    TAG_REPORT_MOVE_MAP_ICON = "report_move_map_icon"
+    TAG_REPORT_MOVE_MAP_TEXT = "report_move_map_text"
     TAG_REPORT_MAP = "report_map"
     TAG_REPORT_CLEAR_MAP = "report_clear_map"
     TAG_REPORT_REMOVE_MAP_ICON = "report_remove_map_icon"
@@ -70,6 +72,8 @@ class WSHandler(tornado.websocket.WebSocketHandler):
     TAG_NOTIFY_REMOVE_MAP_TEXT = "notify_remove_map_text"
     TAG_NOTIFY_MAP_ICON = "notify_map_icon"
     TAG_NOTIFY_MAP_TEXT = "notify_map_text"
+    TAG_NOTIFY_MOVE_MAP_ICON = "notify_move_map_icon"
+    TAG_NOTIFY_MOVE_MAP_TEXT = "notify_move_map_text"
     TAG_NOTIFY_MAP = "notify_map" 
  
     clients = list()
@@ -192,11 +196,46 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             f = open(dirname + filename, 'wb')
             f.write(base64.b64decode(payload2))
             f.close()
-            img_url = 'http://tk2-233-26477.vs.sakura.ne.jp:8888/static/upload/' + filename
+            img_url = 'http://tk2-233-26477.vs.sakura.ne.jp:8889/static/upload/' + filename
             webhook_url = base64.b64decode(payload3)
             session = requests.session()
             params = {'content' : img_url}
             request = session.post(webhook_url, data=params)
+        elif tag == WSHandler.TAG_REPORT_MOVE_MAP_ICON:    # tag_notify_move_map_icon:id,x,y
+            client_map_name = my_client.map_name
+            delimiter_pos = payload.find(",")
+            str_id = payload[0:delimiter_pos]
+            payload2 = payload[delimiter_pos + 1:]
+            delimiter_pos = payload2.find(",")
+            x = payload2[0:delimiter_pos]
+            payload3 = payload2[delimiter_pos + 1:]
+            delimiter_pos = payload3.find(",")
+            y = payload3[0:]
+            for map in WSHandler.maps:
+                if map.name == client_map_name:
+                    for map_icon in map.map_icons:
+                        if (str(id(map_icon)) == str_id):
+                            map_icon.x = x
+                            map_icon.y = y
+                            self.notifyMoveMapIconMapMembers(map_icon, client_map_name)
+
+        elif tag == WSHandler.TAG_REPORT_MOVE_MAP_TEXT:    # tag_notify_move_map_text:id,x,y
+            client_map_name = my_client.map_name
+            delimiter_pos = payload.find(",")
+            str_id = payload[0:delimiter_pos]
+            payload2 = payload[delimiter_pos + 1:]
+            delimiter_pos = payload2.find(",")
+            x = payload2[0:delimiter_pos]
+            payload3 = payload2[delimiter_pos + 1:]
+            delimiter_pos = payload3.find(",")
+            y = payload3[0:]
+            for map in WSHandler.maps:
+                if map.name == client_map_name:
+                    for map_text in map.map_texts:
+                        if (str(id(map_text)) == str_id):
+                            map_text.x = x
+                            map_text.y = y
+                            self.notifyMoveMapTextMapMembers(map_text, client_map_name)
 
     def on_close(self):
         for client in WSHandler.clients:
@@ -234,13 +273,13 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
                 for map_text in map.map_texts:
                     self.write_message(WSHandler.TAG_NOTIFY_REMOVE_MAP_TEXT + "," + str(id(map_text)))
+
     def notifyMap(self, map_name):
         self.write_message(WSHandler.TAG_NOTIFY_MAP + "," + map_name)
 
     def notifyInformation(self):
         my_client = self.getMyClient()        
         client_map_name = my_client.map_name
-        WSHandler.dumpMaps()
         for map in WSHandler.maps:
             if map.name == client_map_name:
                 for map_icon in map.map_icons:
@@ -259,7 +298,13 @@ class WSHandler(tornado.websocket.WebSocketHandler):
 
     def notifyRemoveMapTextMapMembers(self, id, map_name):
         self.sendMapMembers(WSHandler.TAG_NOTIFY_REMOVE_MAP_TEXT + "," + id, map_name)
-    
+   
+    def notifyMoveMapIconMapMembers(self, map_icon, map_name):
+        self.sendMapMembers(WSHandler.TAG_NOTIFY_MOVE_MAP_ICON + "," + str(id(map_icon)) + "," + str(map_icon.x) + "," + str(map_icon.y), map_name)
+
+    def notifyMoveMapTextMapMembers(self, map_text, map_name):
+        self.sendMapMembers(WSHandler.TAG_NOTIFY_MOVE_MAP_TEXT + "," + str(id(map_text)) + "," + str(map_text.x) + "," + str(map_text.y), map_name)
+ 
     def notifyRemoveAllMapIconMapMembers(self, client_map_name):
         for map in WSHandler.maps:
             if map.name == client_map_name:
@@ -277,7 +322,7 @@ application = tornado.web.Application([
 )
 
 if __name__ == "__main__":
-    application.listen(8888)
+    application.listen(8889)
     print("Server is up ...")
     tornado.ioloop.IOLoop.instance().start()
 
